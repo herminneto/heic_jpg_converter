@@ -1,46 +1,10 @@
 from __future__ import print_function
 import os
 import sys
-import time
-from arg_parser import parse_argments
-from urllib3.exceptions import ProtocolError
+import codecs
 import cloudmersive_convert_api_client
 from cloudmersive_convert_api_client.rest import ApiException
-from pprint import pprint
 
-
-def string_to_byte_array(byte_string):
-    tmp_str = byte_string[2:-1]
-    byte_array = []
-
-    while len(tmp_str) != 0:
-        if tmp_str[0] == '\\':
-            if tmp_str[1] == 'x':
-                val = int(tmp_str[2:4], 16)
-                tmp_str = tmp_str[4:]
-            else:
-                if tmp_str[1] == 'n':
-                    val = ord('\n')
-                elif tmp_str[1] == '\\':
-                    val = ord('\\')
-                elif tmp_str[1] == 't':
-                    val = ord('\t')
-                elif tmp_str[1] == 'r':
-                    val = ord('\r')
-                elif tmp_str[1] == 'f':
-                    val = ord('\f')
-                elif tmp_str[1] == 'b':
-                    val = ord('\b')
-                elif tmp_str[1] == 'a':
-                    val = ord('\a')
-                elif tmp_str[1] == "'":
-                    val = ord("\'")
-                tmp_str = tmp_str[2:]
-        else:
-            val = ord(tmp_str[0])
-            tmp_str = tmp_str[1:]
-        byte_array.append(val)
-    return byte_array
 
 def main():
     print("***Checking commandline options***")
@@ -55,12 +19,10 @@ def main():
 
     path = sys.argv[1]
     if not os.path.isfile(path):
-        print("HEIC file not found.")
-        print("Path:{}".format(path))
+        print("HEIC file not found: {}".format(path))
         sys.exit()
     else:
-        print("HEIC file found.")
-        print("Path:{}".format(path))
+        print("HEIC file found: {}".format(path))
 
     # Configure API key authorization: Apikey
     configuration = cloudmersive_convert_api_client.Configuration()
@@ -77,12 +39,14 @@ def main():
     try:
         # Image format conversion
         api_response = api_instance.convert_image_image_format_convert(format1, format2, input_file)
-        byte_array = string_to_byte_array(api_response)
+        jpg_name = input_file.replace('.heic', '.jpg')
 
-        print(byte_array)
-        with open('ret.bin', 'wb') as the_file:
-            file_byte_array = bytearray(byte_array)
-            the_file.write(file_byte_array)
+        data = api_response[2:-1]
+        with open(jpg_name, "wb") as jpg:
+            b = bytes(data, "ascii")
+            jpg.write(codecs.escape_decode(b)[0])
+        print("Output: {}".format(jpg_name))
+        print("Convert finished successfully")
 
     except ApiException as e:
         print("Exception when calling ConvertImageApi->convert_image_image_format_convert: %s\n" % e)
